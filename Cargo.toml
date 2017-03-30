@@ -1,0 +1,9 @@
+[package]
+name = "osu_mania"
+version = "0.1.0"
+authors = ["emersion <contact@emersion.fr>"]
+
+[dependencies]
+glium = "*"
+osu_format = "*"
+rodio = { git = "https://github.com/emersion/rodio", branch = "mp3" }
