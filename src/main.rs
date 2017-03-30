@@ -8,14 +8,14 @@ use std::io::BufReader;
 use std::time::Instant;
 use glium::glutin::{Event, ElementState, VirtualKeyCode};
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default)]
 struct Vertex {
 	position: [f32; 2],
 	at: u32,
-	duration: u32,
 	key: u32,
+	milliseconds_per_beat: f32,
 }
-implement_vertex!(Vertex, position, at, duration, key);
+implement_vertex!(Vertex, position, at, key, milliseconds_per_beat);
 
 const PLAYFIELD_WIDTH: f32 = 512.0;
 const PLAYFIELD_HEIGHT: f32 = 384.0;
@@ -50,66 +50,73 @@ fn main() {
 	for object in beatmap.hit_objects {
 		let base = object.base();
 		let (x, y) = ((base.x as f32) / PLAYFIELD_WIDTH, (base.y as f32) / PLAYFIELD_HEIGHT);
-		let at = base.time as u32;
-		let key = (x / key_width) as u32;
+
+		let vertex = Vertex{
+			at: base.time as u32,
+			key: (x / key_width) as u32,
+			milliseconds_per_beat: beatmap.timing_points[0].milliseconds_per_beat, // TODO
+			..Vertex::default()
+		};
 
 		match object {
 			HitObject::Circle{..} => {
 				notes.append(&mut vec![
 					Vertex{
 						position: [x, y],
-						at: at, duration: 0, key: key,
+						..vertex
 					},
 					Vertex{
 						position: [x, y+NOTE_HEIGHT],
-						at: at, duration: 0, key: key,
+						..vertex
 					},
 					Vertex{
 						position: [x+NOTE_WIDTH, y],
-						at: at, duration: 0, key: key,
+						..vertex
 					},
 
 					Vertex{
 						position: [x, y+NOTE_HEIGHT],
-						at: at, duration: 0, key: key,
+						..vertex
 					},
 					Vertex{
 						position: [x+NOTE_WIDTH, y+NOTE_HEIGHT],
-						at: at, duration: 0, key: key,
+						..vertex
 					},
 					Vertex{
 						position: [x+NOTE_WIDTH, y],
-						at: at, duration: 0, key: key,
+						..vertex
 					},
 				]);
 			},
 			HitObject::LongNote{end_time, ..} => {
-				let duration = (end_time - base.time) as u32;
 				notes.append(&mut vec![
 					Vertex{
 						position: [x, y],
-						at: at, duration: 0, key: key,
+						..vertex
 					},
 					Vertex{
 						position: [x, y],
-						at: at, duration: duration, key: key,
+						at: end_time,
+						..vertex
 					},
 					Vertex{
 						position: [x+NOTE_WIDTH, y],
-						at: at, duration: 0, key: key,
+						..vertex
 					},
 
 					Vertex{
 						position: [x, y],
-						at: at, duration: duration, key: key,
+						at: end_time,
+						..vertex
 					},
 					Vertex{
 						position: [x+NOTE_WIDTH, y],
-						at: at, duration: duration, key: key,
+						at: end_time,
+						..vertex
 					},
 					Vertex{
 						position: [x+NOTE_WIDTH, y],
-						at: at, duration: 0, key: key,
+						..vertex
 					},
 				]);
 			},
@@ -139,7 +146,6 @@ fn main() {
 
 		let uniforms = uniform!{
 			time: (dur.as_secs() as u32)*1_000 + dur.subsec_nanos()/1_000_000,
-			milliseconds_per_beat: beatmap.timing_points[0].milliseconds_per_beat,
 			keys_count: keys_count,
 		};
 
