@@ -17,6 +17,9 @@ struct Vertex {
 }
 implement_vertex!(Vertex, position, at, duration, key);
 
+const PLAYFIELD_WIDTH: f32 = 512.0;
+const PLAYFIELD_HEIGHT: f32 = 384.0;
+
 const NOTE_WIDTH: f32 = 0.1;
 const NOTE_HEIGHT: f32 = 0.05;
 
@@ -41,39 +44,42 @@ fn main() {
 
 	let display = glium::glutin::WindowBuilder::new().build_glium().unwrap();
 
+	let keys_count = 4; // TODO
+	let key_width = 1.0/(keys_count as f32);
 	let mut notes = Vec::new();
 	for object in beatmap.hit_objects {
 		let base = object.base();
-		let (x, y) = ((base.x as f32) / 512.0, (base.y as f32) / 384.0);
+		let (x, y) = ((base.x as f32) / PLAYFIELD_WIDTH, (base.y as f32) / PLAYFIELD_HEIGHT);
 		let at = base.time as u32;
+		let key = (x / key_width) as u32;
 
 		match object {
 			HitObject::Circle{..} => {
 				notes.append(&mut vec![
 					Vertex{
 						position: [x, y],
-						at: at, duration: 0, key: 0,
+						at: at, duration: 0, key: key,
 					},
 					Vertex{
 						position: [x, y+NOTE_HEIGHT],
-						at: at, duration: 0, key: 0,
+						at: at, duration: 0, key: key,
 					},
 					Vertex{
 						position: [x+NOTE_WIDTH, y],
-						at: at, duration: 0, key: 0,
+						at: at, duration: 0, key: key,
 					},
 
 					Vertex{
 						position: [x, y+NOTE_HEIGHT],
-						at: at, duration: 0, key: 0,
+						at: at, duration: 0, key: key,
 					},
 					Vertex{
 						position: [x+NOTE_WIDTH, y+NOTE_HEIGHT],
-						at: at, duration: 0, key: 0,
+						at: at, duration: 0, key: key,
 					},
 					Vertex{
 						position: [x+NOTE_WIDTH, y],
-						at: at, duration: 0, key: 0,
+						at: at, duration: 0, key: key,
 					},
 				]);
 			},
@@ -82,28 +88,28 @@ fn main() {
 				notes.append(&mut vec![
 					Vertex{
 						position: [x, y],
-						at: at, duration: 0, key: 0,
+						at: at, duration: 0, key: key,
 					},
 					Vertex{
 						position: [x, y],
-						at: at, duration: duration, key: 0,
+						at: at, duration: duration, key: key,
 					},
 					Vertex{
 						position: [x+NOTE_WIDTH, y],
-						at: at, duration: 0, key: 0,
+						at: at, duration: 0, key: key,
 					},
 
 					Vertex{
 						position: [x, y],
-						at: at, duration: duration, key: 0,
+						at: at, duration: duration, key: key,
 					},
 					Vertex{
 						position: [x+NOTE_WIDTH, y],
-						at: at, duration: duration, key: 0,
+						at: at, duration: duration, key: key,
 					},
 					Vertex{
 						position: [x+NOTE_WIDTH, y],
-						at: at, duration: 0, key: 0,
+						at: at, duration: 0, key: key,
 					},
 				]);
 			},
@@ -134,6 +140,7 @@ fn main() {
 		let uniforms = uniform!{
 			time: (dur.as_secs() as u32)*1_000 + dur.subsec_nanos()/1_000_000,
 			milliseconds_per_beat: beatmap.timing_points[0].milliseconds_per_beat,
+			keys_count: keys_count,
 		};
 
 		let mut target = display.draw();
