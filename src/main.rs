@@ -62,28 +62,28 @@ fn main() {
 			HitObject::Circle{..} => {
 				notes.append(&mut vec![
 					Vertex{
-						position: [x, y],
+						position: [0.0, y],
 						..vertex
 					},
 					Vertex{
-						position: [x, y+NOTE_HEIGHT],
+						position: [0.0, y+NOTE_HEIGHT],
 						..vertex
 					},
 					Vertex{
-						position: [x+NOTE_WIDTH, y],
+						position: [NOTE_WIDTH, y],
 						..vertex
 					},
 
 					Vertex{
-						position: [x, y+NOTE_HEIGHT],
+						position: [0.0, y+NOTE_HEIGHT],
 						..vertex
 					},
 					Vertex{
-						position: [x+NOTE_WIDTH, y+NOTE_HEIGHT],
+						position: [NOTE_WIDTH, y+NOTE_HEIGHT],
 						..vertex
 					},
 					Vertex{
-						position: [x+NOTE_WIDTH, y],
+						position: [NOTE_WIDTH, y],
 						..vertex
 					},
 				]);
@@ -91,31 +91,31 @@ fn main() {
 			HitObject::LongNote{end_time, ..} => {
 				notes.append(&mut vec![
 					Vertex{
-						position: [x, y],
+						position: [0.0, y],
 						..vertex
 					},
 					Vertex{
-						position: [x, y],
+						position: [0.0, y],
 						at: end_time,
 						..vertex
 					},
 					Vertex{
-						position: [x+NOTE_WIDTH, y],
+						position: [NOTE_WIDTH, y],
 						..vertex
 					},
 
 					Vertex{
-						position: [x, y],
+						position: [0.0, y],
 						at: end_time,
 						..vertex
 					},
 					Vertex{
-						position: [x+NOTE_WIDTH, y],
+						position: [NOTE_WIDTH, y],
 						at: end_time,
 						..vertex
 					},
 					Vertex{
-						position: [x+NOTE_WIDTH, y],
+						position: [NOTE_WIDTH, y],
 						..vertex
 					},
 				]);
