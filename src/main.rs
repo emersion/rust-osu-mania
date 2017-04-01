@@ -90,7 +90,7 @@ fn main() {
 			}
 		}).collect::<Vec<_>>();
 
-		glium::vertex::VertexBuffer::dynamic(&display, &data).unwrap()
+		glium::vertex::VertexBuffer::immutable(&display, &data).unwrap()
 	};
 
 	let note_program = {
