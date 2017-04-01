@@ -25,10 +25,9 @@ void main() {
 
 	float x = position.x + key_x(key);
 
-	float a = fall_factor/milliseconds_per_beat;
-	float y = position.y + (int(at) - int(current_time))*a - 1.0;
+	float y = position.y + (int(at) - int(current_time)) * fall_factor/current_milliseconds_per_beat - 1.0;
 	if (position.y > 0.0 && duration > 0u) {
-		y += int(duration)*a;
+		y += int(duration) * fall_factor/milliseconds_per_beat;
 	}
 
 	gl_Position = vec4(x, y, 0.0, 1.0);

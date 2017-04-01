@@ -7,6 +7,7 @@ mod timeline;
 use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
+use std::path::Path;
 use std::time::Instant;
 use glium::glutin::{Event, ElementState, VirtualKeyCode};
 use timeline::Timeline;
@@ -27,8 +28,8 @@ fn main() {
 	use osu_format::*;
 	use glium::{DisplayBuild, Surface};
 
-	let beatmap_dir = "/home/simon/.local/share/wineprefixes/osu/drive_c/users/simon/Local Settings/Application Data/osu!/Songs/171880 xi - Happy End of the World";
-	let beatmap_path = &[beatmap_dir, "/xi - Happy End of the World (Blocko) [4K Easy].osu"].concat();
+	let beatmap_path = Path::new("/home/simon/.local/share/wineprefixes/osu/drive_c/users/simon/Local Settings/Application Data/osu!/Songs/171880 xi - Happy End of the World/xi - Happy End of the World (Blocko) [4K Easy].osu");
+	let beatmap_dir_path = beatmap_path.parent().unwrap();
 
 	let f = File::open(beatmap_path).unwrap();
 	let r = BufReader::new(&f);
@@ -40,7 +41,7 @@ fn main() {
 	println!("{:?}", beatmap.general);
 	println!("{:?}", beatmap.difficulty);
 
-	let audio_path = &[beatmap_dir, "/", &beatmap.general.audio_filename].concat();
+	let audio_path = beatmap_dir_path.join(&beatmap.general.audio_filename);
 
 	let display = glium::glutin::WindowBuilder::new().build_glium().unwrap();
 
