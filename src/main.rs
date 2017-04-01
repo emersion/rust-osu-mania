@@ -157,7 +157,9 @@ fn main() {
 			current_milliseconds_per_beat: point.milliseconds_per_beat,
 		};
 
-		let key_uniforms = uniform!{};
+		let key_uniforms = uniform!{
+			keys_count: keys_count,
+		};
 
 		let mut target = display.draw();
 		target.clear_color(0.0, 0.0, 1.0, 1.0);

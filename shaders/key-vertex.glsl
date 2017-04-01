@@ -5,6 +5,8 @@ in uint pressed;
 
 in uint key;
 
+uniform uint keys_count;
+
 out vec4 v_color;
 
 const vec4 color_odd = vec4(1, 1, 1, 1);
