@@ -5,5 +5,5 @@ authors = ["emersion <contact@emersion.fr>"]
 
 [dependencies]
 glium = "*"
-osu_format = "*"
+osu_format = { git = "https://github.com/emersion/rust-osu-format" }
 rodio = { git = "https://github.com/emersion/rodio", branch = "mp3" }
