@@ -8,14 +8,11 @@ use std::io::BufReader;
 use std::time::Instant;
 use glium::glutin::{Event, ElementState, VirtualKeyCode};
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone)]
 struct Vertex {
 	position: [f32; 2],
-	at: u32,
-	key: u32,
-	milliseconds_per_beat: f32,
 }
-implement_vertex!(Vertex, position, at, key, milliseconds_per_beat);
+implement_vertex!(Vertex, position);
 
 const PLAYFIELD_WIDTH: f32 = 512.0;
 const PLAYFIELD_HEIGHT: f32 = 384.0;
@@ -44,90 +41,46 @@ fn main() {
 
 	let display = glium::glutin::WindowBuilder::new().build_glium().unwrap();
 
-	let keys_count = 4; // TODO
+	let note_vertex_buffer = glium::VertexBuffer::new(&display, &[
+		Vertex{position: [0.0, 0.0]},
+		Vertex{position: [0.0, NOTE_HEIGHT]},
+		Vertex{position: [NOTE_WIDTH, NOTE_HEIGHT]},
+		Vertex{position: [NOTE_WIDTH, 0.0]},
+	]).unwrap();
+	let note_indices = glium::index::NoIndices(glium::index::PrimitiveType::TriangleFan);
+
+	let keys_count: u32 = 4; // TODO
 	let key_width = 1.0/(keys_count as f32);
-	let mut notes = Vec::new();
-	for object in beatmap.hit_objects {
-		let base = object.base();
-		let (x, y) = ((base.x as f32) / PLAYFIELD_WIDTH, (base.y as f32) / PLAYFIELD_HEIGHT);
 
-		let vertex = Vertex{
-			at: base.time as u32,
-			key: (x / key_width) as u32,
-			milliseconds_per_beat: beatmap.timing_points[0].milliseconds_per_beat, // TODO
-			..Vertex::default()
-		};
-
-		match object {
-			HitObject::Circle{..} => {
-				notes.append(&mut vec![
-					Vertex{
-						position: [0.0, y],
-						..vertex
-					},
-					Vertex{
-						position: [0.0, y+NOTE_HEIGHT],
-						..vertex
-					},
-					Vertex{
-						position: [NOTE_WIDTH, y],
-						..vertex
-					},
-
-					Vertex{
-						position: [0.0, y+NOTE_HEIGHT],
-						..vertex
-					},
-					Vertex{
-						position: [NOTE_WIDTH, y+NOTE_HEIGHT],
-						..vertex
-					},
-					Vertex{
-						position: [NOTE_WIDTH, y],
-						..vertex
-					},
-				]);
-			},
-			HitObject::LongNote{end_time, ..} => {
-				notes.append(&mut vec![
-					Vertex{
-						position: [0.0, y],
-						..vertex
-					},
-					Vertex{
-						position: [0.0, y],
-						at: end_time,
-						..vertex
-					},
-					Vertex{
-						position: [NOTE_WIDTH, y],
-						..vertex
-					},
-
-					Vertex{
-						position: [0.0, y],
-						at: end_time,
-						..vertex
-					},
-					Vertex{
-						position: [NOTE_WIDTH, y],
-						at: end_time,
-						..vertex
-					},
-					Vertex{
-						position: [NOTE_WIDTH, y],
-						..vertex
-					},
-				]);
-			},
-			_ => (),
+	let per_instance = {
+		#[derive(Debug, Copy, Clone)]
+		struct Attr {
+			at: u32,
+			duration: u32,
+			key: u32,
+			milliseconds_per_beat: f32,
 		}
-	}
+		implement_vertex!(Attr, at, duration, key, milliseconds_per_beat);
 
-	//println!("{:?}", notes);
+		let data = beatmap.hit_objects.iter().map(|object| {
+			let base = object.base();
 
-	let notes_vertex_buffer = glium::VertexBuffer::new(&display, &notes).unwrap();
-	let notes_indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
+			let duration: u32 = if let &HitObject::LongNote{end_time, ..} = object {
+				end_time - base.time
+			} else {
+				0
+			};
+
+			Attr {
+				at: base.time as u32,
+				duration: duration,
+				key: ((base.x as f32) / PLAYFIELD_WIDTH / key_width) as u32,
+				milliseconds_per_beat: beatmap.timing_points[0].milliseconds_per_beat, // TODO
+			}
+		}).collect::<Vec<_>>();
+
+		glium::vertex::VertexBuffer::dynamic(&display, &data).unwrap()
+	};
 
 	let vertex_shader_src = include_str!("../shaders/note-vertex.glsl");
 	let fragment_shader_src = include_str!("../shaders/note-fragment.glsl");
@@ -151,7 +104,10 @@ fn main() {
 
 		let mut target = display.draw();
 		target.clear_color(0.0, 0.0, 1.0, 1.0);
-		target.draw(&notes_vertex_buffer, notes_indices, &program, &uniforms, &Default::default()).unwrap();
+		target.draw(
+			(&note_vertex_buffer, per_instance.per_instance().unwrap()),
+			&note_indices, &program, &uniforms, &Default::default()
+		).unwrap();
 		target.finish().unwrap();
 
 		for ev in display.poll_events() {

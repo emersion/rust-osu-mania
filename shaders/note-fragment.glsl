@@ -1,6 +1,6 @@
 #version 140
 
-flat in uint key_out;
+flat in uint v_key;
 
 uniform uint keys_count;
 
@@ -12,7 +12,7 @@ const vec4 color_center = vec4(1, 1, 0, 1);
 
 void main() {
 	// TODO: keys_count
-	if (key_out == 0u || key_out == 3u) {
+	if (v_key == 0u || v_key == 3u) {
 		color = color_odd;
 	} else {
 		color = color_even;
