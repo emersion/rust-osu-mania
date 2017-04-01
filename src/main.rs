@@ -71,7 +71,7 @@ fn main() {
 				0
 			};
 
-			Attr {
+			Attr{
 				at: base.time as u32,
 				duration: duration,
 				key: ((base.x as f32) / PLAYFIELD_WIDTH / key_width) as u32,
