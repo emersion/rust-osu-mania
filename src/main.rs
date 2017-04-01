@@ -2,11 +2,14 @@
 extern crate osu_format;
 extern crate rodio;
 
+mod timeline;
+
 use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::time::Instant;
 use glium::glutin::{Event, ElementState, VirtualKeyCode};
+use timeline::Timeline;
 
 #[derive(Debug, Copy, Clone)]
 struct Vertex {
@@ -62,6 +65,7 @@ fn main() {
 		}
 		implement_vertex!(Attr, at, duration, key, milliseconds_per_beat);
 
+		let mut timeline = Timeline::new(&beatmap.timing_points);
 		let data = beatmap.hit_objects.iter().map(|object| {
 			let base = object.base();
 
@@ -71,11 +75,13 @@ fn main() {
 				0
 			};
 
+			let point = timeline.at(base.time);
+
 			Attr{
-				at: base.time as u32,
+				at: base.time,
 				duration: duration,
 				key: ((base.x as f32) / PLAYFIELD_WIDTH / key_width) as u32,
-				milliseconds_per_beat: beatmap.timing_points[0].milliseconds_per_beat, // TODO
+				milliseconds_per_beat: point.milliseconds_per_beat,
 			}
 		}).collect::<Vec<_>>();
 
@@ -94,12 +100,16 @@ fn main() {
 	sink.append(source);
 
 	let started_at = Instant::now();
+	let mut timeline = Timeline::new(&beatmap.timing_points);
 	loop {
 		let dur = Instant::now() - started_at;
+		let t = (dur.as_secs() as u32)*1_000 + dur.subsec_nanos()/1_000_000;
+		let point = timeline.at(t);
 
 		let uniforms = uniform!{
-			time: (dur.as_secs() as u32)*1_000 + dur.subsec_nanos()/1_000_000,
 			keys_count: keys_count,
+			current_time: t,
+			current_milliseconds_per_beat: point.milliseconds_per_beat,
 		};
 
 		let mut target = display.draw();

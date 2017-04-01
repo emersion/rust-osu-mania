@@ -7,7 +7,8 @@ in uint duration;
 in uint key;
 in float milliseconds_per_beat;
 
-uniform uint time;
+uniform uint current_time;
+uniform float current_milliseconds_per_beat;
 uniform uint keys_count;
 
 const float fall_factor = 1.0;
@@ -25,7 +26,7 @@ void main() {
 	float x = position.x + key_x(key);
 
 	float a = fall_factor/milliseconds_per_beat;
-	float y = position.y + (int(at) - int(time))*a - 1.0;
+	float y = position.y + (int(at) - int(current_time))*a - 1.0;
 	if (position.y > 0.0 && duration > 0u) {
 		y += int(duration)*a;
 	}
