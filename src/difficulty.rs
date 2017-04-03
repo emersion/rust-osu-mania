@@ -1,3 +1,4 @@
+#[derive(Debug, PartialEq)]
 pub enum HitAccuracy {
 	ThreeHundred,
 	OneHundred,
@@ -16,6 +17,7 @@ impl HitAccuracy {
 	}
 }
 
+#[derive(Debug)]
 pub struct OverallDifficulty {
 	three_hundred: f32,
 	one_hundred: f32,
@@ -32,6 +34,7 @@ impl OverallDifficulty {
 	}
 
 	pub fn hit_accuracy(&self, delay: f32) -> HitAccuracy {
+		let delay = delay.abs();
 		if delay < self.three_hundred {
 			HitAccuracy::ThreeHundred
 		} else if delay < self.one_hundred {

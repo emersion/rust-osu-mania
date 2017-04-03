@@ -158,6 +158,13 @@ fn main() {
 		let t = (dur.as_secs() as u32)*1_000 + dur.subsec_nanos()/1_000_000;
 		let point = timeline.at(t);
 
+		{
+			let missed = hit_line.at(t as f32);
+			if missed.len() > 0 {
+				println!("Missed {} note(s)", missed.len());
+			}
+		}
+
 		let note_uniforms = uniform!{
 			keys_count: keys_count,
 			current_time: t,
@@ -202,11 +209,12 @@ fn main() {
 						let mut mapping = key_per_instance.map();
 						mapping.iter_mut().nth(key as usize).unwrap().pressed = pressed;
 
-						if state == ElementState::Pressed {
-							hit_line.press(key);
+						let acc = if state == ElementState::Pressed {
+							hit_line.press(key)
 						} else {
-							hit_line.release(key);
-						}
+							hit_line.release(key)
+						};
+						println!("{:?}", acc);
 					}
 				},
 				_ => (),

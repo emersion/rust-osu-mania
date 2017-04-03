@@ -10,7 +10,7 @@ pub struct HitLine<'a> {
 	overall_difficulty: OverallDifficulty,
 	hit_objects: Vec<Box<Iterator<Item=&'a HitObject> + 'a>>,
 	current: Vec<Option<&'a HitObject>>,
-	time: u32,
+	time: f32,
 }
 
 impl<'a> HitLine<'a> {
@@ -35,21 +35,50 @@ impl<'a> HitLine<'a> {
 			overall_difficulty: od,
 			hit_objects: iterators,
 			current: current,
-			time: 0,
+			time: 0.0,
 		}
 	}
 
-	pub fn forward(&mut self, t: u32) -> Vec<&HitObject> {
+	pub fn at(&mut self, t: f32) -> Vec<&HitObject> {
+		let mut missed = Vec::new();
+		for (key, current) in self.current.iter_mut().enumerate() {
+			if let &mut Some(object) = current {
+				let dt = t - (object.base().time as f32);
+				if dt > 0.0 {
+					let acc = self.overall_difficulty.hit_accuracy(dt);
+					if acc == HitAccuracy::Missed {
+						missed.push(object);
+						*current = self.hit_objects[key].next();
+					}
+				}
+			}
+		}
+
 		self.time = t;
-		// TODO: return missed notes
-		Vec::new()
+
+		missed
 	}
 
 	pub fn press(&mut self, key: u32) -> Option<HitAccuracy> {
-		None
+		let key = key as usize;
+		match self.current[key] {
+			None => None,
+			Some(object) => {
+				let dt = self.time - (object.base().time as f32);
+				let acc = self.overall_difficulty.hit_accuracy(dt);
+
+				match acc {
+					HitAccuracy::Missed => None,
+					_ => {
+						self.current[key] = self.hit_objects[key].next();
+						Some(acc)
+					},
+				}
+			}
+		}
 	}
 
 	pub fn release(&mut self, key: u32) -> Option<HitAccuracy> {
-		None
+		None // TODO: hold notes
 	}
 }
