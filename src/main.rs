@@ -2,6 +2,8 @@
 extern crate osu_format;
 extern crate rodio;
 
+mod difficulty;
+mod hitline;
 mod timeline;
 
 use std::fs::File;
@@ -10,6 +12,9 @@ use std::io::BufReader;
 use std::path::Path;
 use std::time::Instant;
 use glium::glutin::{Event, ElementState, VirtualKeyCode};
+
+use difficulty::OverallDifficulty;
+use hitline::HitLine;
 use timeline::Timeline;
 
 #[derive(Debug, Copy, Clone)]
@@ -42,9 +47,12 @@ fn main() {
 	let beatmap = p.parse().unwrap();
 
 	println!("{:?}", beatmap.general);
+	println!("{:?}", beatmap.metadata);
 	println!("{:?}", beatmap.difficulty);
 
 	let audio_path = beatmap_dir_path.join(&beatmap.general.audio_filename);
+	let keys_count: u32 = 4; // TODO
+	let overall_difficulty = OverallDifficulty::new(beatmap.difficulty.overall_difficulty);
 
 	let display = glium::glutin::WindowBuilder::new().build_glium().unwrap();
 
@@ -55,8 +63,6 @@ fn main() {
 		Vertex{position: [NOTE_WIDTH, 0.0]},
 	]).unwrap();
 	let note_indices = glium::index::NoIndices(glium::index::PrimitiveType::TriangleFan);
-
-	let keys_count: u32 = 4; // TODO
 
 	let note_per_instance = {
 		#[derive(Debug, Copy, Clone)]
@@ -146,6 +152,7 @@ fn main() {
 
 	let started_at = Instant::now();
 	let mut timeline = Timeline::new(&beatmap.timing_points);
+	let mut hit_line = HitLine::new(keys_count, overall_difficulty, &beatmap.hit_objects);
 	loop {
 		let dur = Instant::now() - started_at;
 		let t = (dur.as_secs() as u32)*1_000 + dur.subsec_nanos()/1_000_000;
@@ -193,7 +200,13 @@ fn main() {
 						};
 
 						let mut mapping = key_per_instance.map();
-						mapping.iter_mut().nth(key).unwrap().pressed = pressed;
+						mapping.iter_mut().nth(key as usize).unwrap().pressed = pressed;
+
+						if state == ElementState::Pressed {
+							hit_line.press(key);
+						} else {
+							hit_line.release(key);
+						}
 					}
 				},
 				_ => (),
