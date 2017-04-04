@@ -51,7 +51,7 @@ fn main() {
 	println!("{:?}", beatmap.difficulty);
 
 	let audio_path = beatmap_dir_path.join(&beatmap.general.audio_filename);
-	let keys_count: u32 = 4; // TODO
+	let keys_count = beatmap.difficulty.circle_size as u32;
 	let overall_difficulty = OverallDifficulty::new(beatmap.difficulty.overall_difficulty);
 
 	let display = glium::glutin::WindowBuilder::new().build_glium().unwrap();

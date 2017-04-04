@@ -1,6 +1,5 @@
 use std::iter::Iterator;
 use osu_format::HitObject;
-use std::borrow::Borrow;
 
 use difficulty::{OverallDifficulty, HitAccuracy};
 
@@ -10,6 +9,7 @@ pub struct HitLine<'a> {
 	overall_difficulty: OverallDifficulty,
 	hit_objects: Vec<Box<Iterator<Item=&'a HitObject> + 'a>>,
 	current: Vec<Option<&'a HitObject>>,
+	last: Vec<Option<HitAccuracy>>,
 	time: f32,
 }
 
@@ -31,10 +31,13 @@ impl<'a> HitLine<'a> {
 		.map(|iter| iter.next())
 		.collect::<Vec<_>>();
 
+		let last = iterators.iter().map(|_| None).collect::<Vec<_>>();
+
 		HitLine{
 			overall_difficulty: od,
 			hit_objects: iterators,
 			current: current,
+			last: last,
 			time: 0.0,
 		}
 	}
@@ -46,7 +49,7 @@ impl<'a> HitLine<'a> {
 				let dt = t - (object.base().time as f32);
 				if dt > 0.0 {
 					let acc = self.overall_difficulty.hit_accuracy(dt);
-					if acc == HitAccuracy::Missed {
+					if acc == HitAccuracy::Miss {
 						missed.push(object);
 						*current = self.hit_objects[key].next();
 					}
@@ -68,7 +71,7 @@ impl<'a> HitLine<'a> {
 				let acc = self.overall_difficulty.hit_accuracy(dt);
 
 				match acc {
-					HitAccuracy::Missed => None,
+					HitAccuracy::Miss => None,
 					_ => {
 						self.current[key] = self.hit_objects[key].next();
 						Some(acc)

@@ -2,8 +2,9 @@
 pub enum HitAccuracy {
 	ThreeHundred,
 	OneHundred,
+	TwoHundred,
 	Fifty,
-	Missed,
+	Miss,
 }
 
 impl HitAccuracy {
@@ -11,8 +12,18 @@ impl HitAccuracy {
 		match self {
 			HitAccuracy::ThreeHundred => 300,
 			HitAccuracy::OneHundred => 100,
+			HitAccuracy::TwoHundred => 200,
 			HitAccuracy::Fifty => 50,
-			HitAccuracy::Missed => 0,
+			HitAccuracy::Miss => 0,
+		}
+	}
+
+	pub fn hold_note(self, released: Option<HitAccuracy>) -> HitAccuracy {
+		// TODO
+		match (self, released) {
+			(HitAccuracy::ThreeHundred, Some(HitAccuracy::ThreeHundred)) => HitAccuracy::ThreeHundred,
+			(HitAccuracy::ThreeHundred, None) => HitAccuracy::TwoHundred,
+			_ => HitAccuracy::Miss,
 		}
 	}
 }
@@ -42,7 +53,7 @@ impl OverallDifficulty {
 		} else if delay < self.fifty {
 			HitAccuracy::Fifty
 		} else {
-			HitAccuracy::Missed
+			HitAccuracy::Miss
 		}
 	}
 }
