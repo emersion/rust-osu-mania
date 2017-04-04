@@ -42,15 +42,22 @@ impl<'a> HitLine<'a> {
 		}
 	}
 
-	pub fn at(&mut self, t: f32) -> Vec<&HitObject> {
+	pub fn at(&mut self, t: f32) -> Vec<HitAccuracy> {
 		let mut missed = Vec::new();
 		for (key, current) in self.current.iter_mut().enumerate() {
 			if let &mut Some(object) = current {
-				let dt = t - (object.base().time as f32);
+				let end_time = match object {
+					&HitObject::LongNote{end_time, ..} => end_time,
+					_ => object.base().time,
+				};
+				let dt = t - (end_time as f32);
 				if dt > 0.0 {
-					let acc = self.overall_difficulty.hit_accuracy(dt);
+					let mut acc = self.overall_difficulty.hit_accuracy(dt);
 					if acc == HitAccuracy::Miss {
-						missed.push(object);
+						if let Some(last_acc) = self.last[key].take() {
+							acc = last_acc.hold_note(Some(acc));
+						}
+						missed.push(acc);
 						*current = self.hit_objects[key].next();
 					}
 				}
@@ -64,24 +71,61 @@ impl<'a> HitLine<'a> {
 
 	pub fn press(&mut self, key: u32) -> Option<HitAccuracy> {
 		let key = key as usize;
-		match self.current[key] {
-			None => None,
-			Some(object) => {
-				let dt = self.time - (object.base().time as f32);
-				let acc = self.overall_difficulty.hit_accuracy(dt);
+		let current = match self.current[key] {
+			None => return None,
+			Some(current) => current,
+		};
 
-				match acc {
+		match current {
+			&HitObject::Circle{..} => {
+				let dt = self.time - (current.base().time as f32);
+
+				match self.overall_difficulty.hit_accuracy(dt) {
 					HitAccuracy::Miss => None,
-					_ => {
+					acc @ _ => {
 						self.current[key] = self.hit_objects[key].next();
 						Some(acc)
 					},
 				}
-			}
+			},
+			&HitObject::LongNote{end_time, ..} => {
+				if let Some(_) = self.last[key] {
+					// TODO: pressed, released, pressed again
+					None
+				} else {
+					let dt = self.time - (current.base().time as f32);
+
+					self.last[key] = match self.overall_difficulty.hit_accuracy(dt) {
+						HitAccuracy::Miss => None,
+						acc @ _ => {
+							self.current[key] = self.hit_objects[key].next();
+							Some(acc)
+						},
+					};
+					println!("Long note press: {:?}", self.last[key]);
+
+					None
+				}
+			},
+			_ => None,
 		}
 	}
 
 	pub fn release(&mut self, key: u32) -> Option<HitAccuracy> {
-		None // TODO: hold notes
+		let key = key as usize;
+		let end_time = match self.current[key] {
+			Some(&HitObject::LongNote{end_time, ..}) => end_time,
+			_ => return None,
+		};
+
+		let dt = self.time - (end_time as f32);
+		match self.overall_difficulty.hit_accuracy(dt) {
+			HitAccuracy::Miss => None,
+			acc @ _ => {
+				self.current[key] = self.hit_objects[key].next();
+				println!("Long note release acc: {:?}", acc);
+				Some(acc.hold_note(self.last[key].take()))
+			},
+		}
 	}
 }
