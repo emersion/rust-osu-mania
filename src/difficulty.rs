@@ -8,8 +8,8 @@ pub enum HitAccuracy {
 }
 
 impl HitAccuracy {
-	pub fn score(self) -> i32 {
-		match self {
+	pub fn score(&self) -> u32 {
+		match *self {
 			HitAccuracy::ThreeHundred => 300,
 			HitAccuracy::OneHundred => 100,
 			HitAccuracy::TwoHundred => 200,
@@ -18,11 +18,11 @@ impl HitAccuracy {
 		}
 	}
 
-	pub fn hold_note(self, released: Option<HitAccuracy>) -> HitAccuracy {
+	pub fn hold_note(&self, released: Option<HitAccuracy>) -> HitAccuracy {
 		// TODO
 		match (self, released) {
-			(HitAccuracy::ThreeHundred, Some(HitAccuracy::ThreeHundred)) => HitAccuracy::ThreeHundred,
-			(HitAccuracy::ThreeHundred, None) => HitAccuracy::TwoHundred,
+			(&HitAccuracy::ThreeHundred, Some(HitAccuracy::ThreeHundred)) => HitAccuracy::ThreeHundred,
+			(&HitAccuracy::ThreeHundred, None) => HitAccuracy::TwoHundred,
 			_ => HitAccuracy::Miss,
 		}
 	}

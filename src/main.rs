@@ -4,6 +4,7 @@ extern crate rodio;
 
 mod difficulty;
 mod hitline;
+mod score;
 mod timeline;
 
 use std::fs::File;
@@ -13,8 +14,9 @@ use std::path::Path;
 use std::time::Instant;
 use glium::glutin::{Event, ElementState, VirtualKeyCode};
 
-use difficulty::OverallDifficulty;
+use difficulty::{OverallDifficulty, HitAccuracy};
 use hitline::HitLine;
+use score::Score;
 use timeline::Timeline;
 
 #[derive(Debug, Copy, Clone)]
@@ -153,6 +155,7 @@ fn main() {
 	let started_at = Instant::now();
 	let mut timeline = Timeline::new(&beatmap.timing_points);
 	let mut hit_line = HitLine::new(keys_count, overall_difficulty, &beatmap.hit_objects);
+	let mut score = Score::new();
 	loop {
 		let dur = Instant::now() - started_at;
 		let t = (dur.as_secs() as u32)*1_000 + dur.subsec_nanos()/1_000_000;
@@ -162,6 +165,9 @@ fn main() {
 			let missed = hit_line.at(t as f32);
 			if missed.len() > 0 {
 				println!("Missed {} note(s)", missed.len());
+			}
+			for _ in missed {
+				score.push(HitAccuracy::Miss);
 			}
 		}
 
@@ -190,7 +196,11 @@ fn main() {
 		for ev in display.poll_events() {
 			match ev {
 				Event::KeyboardInput(ElementState::Pressed, _, Some(VirtualKeyCode::Escape)) |
-				Event::Closed => return,
+				Event::Closed => {
+					println!("Accuracy: {}", score.accuracy());
+					println!("Score: {}", score.score());
+					return;
+				},
 				Event::KeyboardInput(state, _, Some(keycode)) => {
 					let key = match keycode {
 						VirtualKeyCode::D => Some(0),
@@ -214,7 +224,11 @@ fn main() {
 						} else {
 							hit_line.release(key)
 						};
-						println!("{:?}", acc);
+
+						if let Some(acc) = acc {
+							println!("{:?}", acc);
+							score.push(acc);
+						}
 					}
 				},
 				_ => (),
