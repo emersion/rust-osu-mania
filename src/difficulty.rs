@@ -1,10 +1,12 @@
-#[derive(Debug, PartialEq)]
+use std::cmp;
+
+#[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord)]
 pub enum HitAccuracy {
-	ThreeHundred,
+	Miss,
+	Fifty,
 	OneHundred,
 	TwoHundred,
-	Fifty,
-	Miss,
+	ThreeHundred,
 }
 
 impl HitAccuracy {
@@ -18,11 +20,14 @@ impl HitAccuracy {
 		}
 	}
 
-	pub fn hold_note(&self, released: Option<HitAccuracy>) -> HitAccuracy {
+	pub fn hold_note(self, released: Option<HitAccuracy>) -> HitAccuracy {
 		// TODO
 		match (self, released) {
-			(&HitAccuracy::ThreeHundred, Some(HitAccuracy::ThreeHundred)) => HitAccuracy::ThreeHundred,
-			(&HitAccuracy::ThreeHundred, None) => HitAccuracy::TwoHundred,
+			(pressed @ _, Some(released @ _)) => {
+				println!("Hold note: {:?}, {:?} -> {:?}", &pressed, &released, cmp::min(&pressed, &released));
+				cmp::min(pressed, released)
+			},
+			(HitAccuracy::ThreeHundred, None) => HitAccuracy::TwoHundred,
 			_ => HitAccuracy::Miss,
 		}
 	}

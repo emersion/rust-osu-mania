@@ -162,12 +162,12 @@ fn main() {
 		let point = timeline.at(t);
 
 		{
-			let missed = hit_line.at(t as f32);
-			if missed.len() > 0 {
-				println!("Missed {} note(s)", missed.len());
+			let accuracy_list = hit_line.at(t as f32);
+			if accuracy_list.len() > 0 {
+				println!("{:?}", accuracy_list);
 			}
-			for _ in missed {
-				score.push(HitAccuracy::Miss);
+			for acc in accuracy_list {
+				score.push(acc);
 			}
 		}
 

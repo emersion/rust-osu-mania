@@ -45,23 +45,30 @@ impl<'a> HitLine<'a> {
 	pub fn at(&mut self, t: f32) -> Vec<HitAccuracy> {
 		let mut missed = Vec::new();
 		for (key, current) in self.current.iter_mut().enumerate() {
-			if let &mut Some(object) = current {
-				let end_time = match object {
-					&HitObject::LongNote{end_time, ..} => end_time,
-					_ => object.base().time,
-				};
-				let dt = t - (end_time as f32);
-				if dt > 0.0 {
-					let mut acc = self.overall_difficulty.hit_accuracy(dt);
-					if acc == HitAccuracy::Miss {
-						if let Some(last_acc) = self.last[key].take() {
-							acc = last_acc.hold_note(Some(acc));
-						}
-						missed.push(acc);
-						*current = self.hit_objects[key].next();
-					}
-				}
+			let object = match *current {
+				Some(object) => object,
+				None => continue,
+			};
+
+			let end_time = match *object {
+				HitObject::LongNote{end_time, ..} => end_time,
+				_ => object.base().time,
+			};
+			let dt = t - (end_time as f32);
+			if dt < 0.0 {
+				continue; // Object in the future
 			}
+
+			let mut acc = self.overall_difficulty.hit_accuracy(dt);
+			if acc != HitAccuracy::Miss {
+				continue; // Object in the past, but can still be hit
+			}
+
+			if let Some(last_acc) = self.last[key].take() {
+				acc = last_acc.hold_note(Some(acc));
+			}
+			missed.push(acc);
+			*current = self.hit_objects[key].next();
 		}
 
 		self.time = t;
@@ -97,12 +104,8 @@ impl<'a> HitLine<'a> {
 
 					self.last[key] = match self.overall_difficulty.hit_accuracy(dt) {
 						HitAccuracy::Miss => None,
-						acc @ _ => {
-							self.current[key] = self.hit_objects[key].next();
-							Some(acc)
-						},
+						acc @ _ => Some(acc),
 					};
-					println!("Long note press: {:?}", self.last[key]);
 
 					None
 				}
@@ -117,14 +120,22 @@ impl<'a> HitLine<'a> {
 			Some(&HitObject::LongNote{end_time, ..}) => end_time,
 			_ => return None,
 		};
+		let last = match self.last[key].take() {
+			Some(last) => last,
+			None => return None,
+		};
 
 		let dt = self.time - (end_time as f32);
 		match self.overall_difficulty.hit_accuracy(dt) {
-			HitAccuracy::Miss => None,
+			HitAccuracy::Miss => {
+				// Released too early
+				self.last[key] = Some(HitAccuracy::Miss);
+				None
+			},
 			acc @ _ => {
+				// Released on time
 				self.current[key] = self.hit_objects[key].next();
-				println!("Long note release acc: {:?}", acc);
-				Some(acc.hold_note(self.last[key].take()))
+				Some(last.hold_note(Some(acc)))
 			},
 		}
 	}
