@@ -14,7 +14,7 @@ use std::path::Path;
 use std::time::Instant;
 use glium::glutin::{Event, ElementState, VirtualKeyCode};
 
-use difficulty::{OverallDifficulty, HitAccuracy};
+use difficulty::OverallDifficulty;
 use hitline::HitLine;
 use score::Score;
 use timeline::Timeline;

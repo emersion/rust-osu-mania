@@ -65,7 +65,7 @@ impl<'a> HitLine<'a> {
 			}
 
 			if let Some(last_acc) = self.last[key].take() {
-				acc = last_acc.hold_note(Some(acc));
+				acc = last_acc.hold_note(acc);
 			}
 			missed.push(acc);
 			*current = self.hit_objects[key].next();
@@ -95,18 +95,14 @@ impl<'a> HitLine<'a> {
 					},
 				}
 			},
-			&HitObject::LongNote{end_time, ..} => {
+			&HitObject::LongNote{..} => {
 				if let Some(_) = self.last[key] {
-					// TODO: pressed, released, pressed again
+					// Pressed, released, pressed again
 					None
 				} else {
+					// Pressed for the first time, maybe on time
 					let dt = self.time - (current.base().time as f32);
-
-					self.last[key] = match self.overall_difficulty.hit_accuracy(dt) {
-						HitAccuracy::Miss => None,
-						acc @ _ => Some(acc),
-					};
-
+					self.last[key] = Some(self.overall_difficulty.hit_accuracy(dt));
 					None
 				}
 			},
@@ -135,7 +131,7 @@ impl<'a> HitLine<'a> {
 			acc @ _ => {
 				// Released on time
 				self.current[key] = self.hit_objects[key].next();
-				Some(last.hold_note(Some(acc)))
+				Some(last.hold_note(acc))
 			},
 		}
 	}
