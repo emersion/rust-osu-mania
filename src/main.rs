@@ -34,7 +34,7 @@ const NOTE_HEIGHT: f32 = 0.05;
 const KEY_HEIGHT: f32 = 0.2;
 
 fn main() {
-	use osu_format::*;
+	use osu_format::{Parser, HitObject};
 	use glium::{DisplayBuild, Surface, Blend};
 	use glium::draw_parameters::{DrawParameters, BackfaceCullingMode};
 
@@ -139,12 +139,12 @@ fn main() {
 		glium::Program::from_source(&display, &vertex_shader_src, &fragment_shader_src, None).unwrap()
 	};
 
-	let endpoint = rodio::get_default_endpoint().unwrap();
+	/*let endpoint = rodio::get_default_endpoint().unwrap();
 	let sink = rodio::Sink::new(&endpoint);
 
 	let file = std::fs::File::open(audio_path).unwrap();
 	let source = rodio::Decoder::new(BufReader::new(file)).unwrap();
-	sink.append(source);
+	sink.append(source);*/
 
 	let draw_parameters = DrawParameters{
 		blend: Blend::alpha_blending(),
