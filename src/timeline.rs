@@ -15,13 +15,19 @@ impl<'a> Timeline<'a> {
 
 		Timeline{
 			timing_points: iter,
-			current: TimingPoint::default(),
-			last_parent: TimingPoint::default(),
+			current: next.unwrap().clone(),
+			last_parent: next.unwrap().clone(),
 			next: next,
 		}
 	}
 
-	pub fn at(&mut self, t: u32) -> &TimingPoint {
+	pub fn at(&mut self, t: i32) -> &TimingPoint {
+		let t = if t < 0 {
+			0
+		} else {
+			t as u32
+		};
+
 		while let Some(next) = self.next {
 			if next.offset > t {
 				break;

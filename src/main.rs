@@ -5,18 +5,20 @@ extern crate rodio;
 mod difficulty;
 mod hitline;
 mod score;
+mod time;
 mod timeline;
 
 use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::path::Path;
-use std::time::Instant;
+use std::time::{Instant, Duration};
 use glium::glutin::{Event, ElementState, VirtualKeyCode};
 
 use difficulty::OverallDifficulty;
 use hitline::HitLine;
 use score::Score;
+use time::AsMillis;
 use timeline::Timeline;
 
 #[derive(Debug, Copy, Clone)]
@@ -88,7 +90,7 @@ fn main() {
 				0
 			};
 
-			let point = timeline.at(base.time);
+			let point = timeline.at(base.time as i32);
 
 			Attr{
 				at: base.time,
@@ -139,12 +141,11 @@ fn main() {
 		glium::Program::from_source(&display, &vertex_shader_src, &fragment_shader_src, None).unwrap()
 	};
 
-	/*let endpoint = rodio::get_default_endpoint().unwrap();
+	let endpoint = rodio::get_default_endpoint().unwrap();
 	let sink = rodio::Sink::new(&endpoint);
 
 	let file = std::fs::File::open(audio_path).unwrap();
-	let source = rodio::Decoder::new(BufReader::new(file)).unwrap();
-	sink.append(source);*/
+	let mut source = Some(rodio::Decoder::new(BufReader::new(file)).unwrap());
 
 	let draw_parameters = DrawParameters{
 		blend: Blend::alpha_blending(),
@@ -153,13 +154,18 @@ fn main() {
 	};
 
 	let started_at = Instant::now();
+	let audio_lead_in = Duration::from_millis(beatmap.general.audio_lead_in as u64);
 	let mut timeline = Timeline::new(&beatmap.timing_points);
 	let mut hit_line = HitLine::new(keys_count, overall_difficulty, &beatmap.hit_objects);
 	let mut score = Score::new();
 	loop {
 		let dur = Instant::now() - started_at;
-		let t = (dur.as_secs() as u32)*1_000 + dur.subsec_nanos()/1_000_000;
+		let t = (dur.as_millis() as i32) - (audio_lead_in.as_millis() as i32);
 		let point = timeline.at(t);
+
+		if !source.is_none() && t >= 0 {
+			sink.append(source.take().unwrap());
+		}
 
 		{
 			let accuracy_list = hit_line.at(t as f32);
