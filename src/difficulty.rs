@@ -1,29 +1,45 @@
-#[derive(Debug, PartialEq)]
+use std::cmp;
+
+#[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord)]
 pub enum HitAccuracy {
-	ThreeHundred,
+	Miss,
+	Fifty,
 	OneHundred,
 	TwoHundred,
-	Fifty,
-	Miss,
+	ThreeHundred,
 }
 
 impl HitAccuracy {
 	pub fn score(&self) -> u32 {
 		match *self {
 			HitAccuracy::ThreeHundred => 300,
-			HitAccuracy::OneHundred => 100,
 			HitAccuracy::TwoHundred => 200,
+			HitAccuracy::OneHundred => 100,
 			HitAccuracy::Fifty => 50,
 			HitAccuracy::Miss => 0,
 		}
 	}
 
-	pub fn hold_note(&self, released: Option<HitAccuracy>) -> HitAccuracy {
-		// TODO
-		match (self, released) {
-			(&HitAccuracy::ThreeHundred, Some(HitAccuracy::ThreeHundred)) => HitAccuracy::ThreeHundred,
-			(&HitAccuracy::ThreeHundred, None) => HitAccuracy::TwoHundred,
+	pub fn prev(&self) -> HitAccuracy {
+		match *self {
+			HitAccuracy::ThreeHundred => HitAccuracy::TwoHundred,
+			HitAccuracy::TwoHundred => HitAccuracy::OneHundred,
+			HitAccuracy::OneHundred => HitAccuracy::Fifty,
 			_ => HitAccuracy::Miss,
+		}
+	}
+
+	pub fn hold_note(self, released: HitAccuracy) -> HitAccuracy {
+		match (self, released) {
+			// Pressed (maybe on time) and not released
+			(pressed, HitAccuracy::Miss) => pressed.prev(),
+			// NG (Not Good): pressed, released, pressed again during the note and released on time
+			(HitAccuracy::Miss, _) => HitAccuracy::Fifty,
+			(pressed, released) => {
+				// Pressed on time and released (maybe on time)
+				println!("Hold note: {:?}, {:?} -> {:?}", &pressed, &released, cmp::min(&pressed, &released));
+				cmp::min(pressed, released)
+			},
 		}
 	}
 }
