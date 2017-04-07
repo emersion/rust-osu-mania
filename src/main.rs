@@ -1,4 +1,5 @@
 #[macro_use] extern crate glium;
+extern crate image;
 extern crate osu_format;
 extern crate rodio;
 
@@ -8,12 +9,15 @@ mod score;
 mod time;
 mod timeline;
 
+use glium::{DisplayBuild, Surface, Blend};
+use glium::draw_parameters::{DrawParameters, BackfaceCullingMode};
+use glium::glutin::{Event, ElementState, VirtualKeyCode};
+use osu_format::{Parser, HitObject, Event as OsuEvent};
 use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::path::Path;
 use std::time::{Instant, Duration};
-use glium::glutin::{Event, ElementState, VirtualKeyCode};
 
 use difficulty::OverallDifficulty;
 use hitline::HitLine;
@@ -36,10 +40,6 @@ const NOTE_HEIGHT: f32 = 0.05;
 const KEY_HEIGHT: f32 = 0.2;
 
 fn main() {
-	use osu_format::{Parser, HitObject};
-	use glium::{DisplayBuild, Surface, Blend};
-	use glium::draw_parameters::{DrawParameters, BackfaceCullingMode};
-
 	let beatmap_path = Path::new("/home/simon/.local/share/wineprefixes/osu/drive_c/users/simon/Local Settings/Application Data/osu!/Songs/171880 xi - Happy End of the World/xi - Happy End of the World (Blocko) [4K Easy].osu");
 	let beatmap_dir_path = beatmap_path.parent().unwrap();
 
@@ -58,7 +58,28 @@ fn main() {
 	let keys_count = beatmap.difficulty.circle_size as u32;
 	let overall_difficulty = OverallDifficulty::new(beatmap.difficulty.overall_difficulty);
 
+	let mut background_path = None;
+	if beatmap.events.len() > 0 {
+		if let OsuEvent::BackgroundMedia{ref filepath, ..} = beatmap.events[0] {
+			background_path = Some(beatmap_dir_path.join(filepath));
+		}
+	}
+
 	let display = glium::glutin::WindowBuilder::new().build_glium().unwrap();
+
+	let background_vertex_buffer = glium::VertexBuffer::new(&display, &[
+		Vertex{position: [-1.0, -1.0]},
+		Vertex{position: [-1.0, 1.0]},
+		Vertex{position: [1.0, 1.0]},
+		Vertex{position: [1.0, -1.0]},
+	]).unwrap();
+	let background_indices = glium::index::NoIndices(glium::index::PrimitiveType::TriangleFan);
+
+	let background_program = {
+		let vertex_shader_src = include_str!("../shaders/background-vertex.glsl");
+		let fragment_shader_src = include_str!("../shaders/background-fragment.glsl");
+		glium::Program::from_source(&display, &vertex_shader_src, &fragment_shader_src, None).unwrap()
+	};
 
 	let note_vertex_buffer = glium::VertexBuffer::new(&display, &[
 		Vertex{position: [0.0, 0.0]},
@@ -147,6 +168,14 @@ fn main() {
 	let file = std::fs::File::open(audio_path).unwrap();
 	let mut source = Some(rodio::Decoder::new(BufReader::new(file)).unwrap());
 
+	let mut background_texture = glium::texture::Texture2d::empty(&display, 0, 0).unwrap();
+	if let Some(background_path) = background_path {
+		let image = image::open(background_path).unwrap().to_rgba();
+		let image_dimensions = image.dimensions();
+		let image = glium::texture::RawImage2d::from_raw_rgba_reversed(image.into_raw(), image_dimensions);
+		background_texture = glium::texture::Texture2d::new(&display, image).unwrap();
+	}
+
 	let draw_parameters = DrawParameters{
 		blend: Blend::alpha_blending(),
 		backface_culling: BackfaceCullingMode::CullingDisabled,
@@ -177,6 +206,10 @@ fn main() {
 			}
 		}
 
+		let background_uniforms = uniform!{
+			background_texture: &background_texture,
+		};
+
 		let note_uniforms = uniform!{
 			keys_count: keys_count,
 			current_time: t,
@@ -188,7 +221,11 @@ fn main() {
 		};
 
 		let mut target = display.draw();
-		target.clear_color(0.0, 0.0, 1.0, 1.0);
+		target.clear_color(0.0, 0.0, 0.0, 1.0);
+		target.draw(
+			&background_vertex_buffer,
+			&background_indices, &background_program, &background_uniforms, &draw_parameters
+		).unwrap();
 		target.draw(
 			(&note_vertex_buffer, note_per_instance.per_instance().unwrap()),
 			&note_indices, &note_program, &note_uniforms, &draw_parameters
