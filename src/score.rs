@@ -33,6 +33,8 @@ pub struct Score {
 	hit_points: u32,
 	bonus_value: u32,
 	bonus: f32,
+	combo: u32,
+	max_combo: u32,
 }
 
 const MAX_SCORE: u32 = 1_000_000;
@@ -46,6 +48,8 @@ impl Score {
 			hit_points: 0,
 			bonus_value: 0,
 			bonus: 100.0,
+			combo: 0,
+			max_combo: 0,
 		}
 	}
 
@@ -60,6 +64,15 @@ impl Score {
 		}
 		if self.bonus > 100.0 {
 			self.bonus = 100.0;
+		}
+
+		if hit != HitAccuracy::Miss {
+			self.combo += 1;
+			if self.combo > self.max_combo {
+				self.max_combo = self.combo;
+			}
+		} else {
+			self.combo = 0;
 		}
 	}
 
@@ -77,5 +90,9 @@ impl Score {
 		let bonus_score = a * (self.bonus_value as f32 * self.bonus.sqrt() / 320.0);
 
 		(base_score as u32) + (bonus_score as u32)
+	}
+
+	pub fn combo(&self) -> u32 {
+		self.max_combo
 	}
 }

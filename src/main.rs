@@ -205,6 +205,7 @@ fn main() {
 				Event::Closed => {
 					println!("Accuracy: {}", score.accuracy());
 					println!("Score: {}", score.score());
+					println!("Combo: {}", score.combo());
 					return;
 				},
 				Event::KeyboardInput(state, _, Some(keycode)) => {
