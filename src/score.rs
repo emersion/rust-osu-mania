@@ -85,6 +85,10 @@ impl Score {
 	}
 
 	pub fn score(&self) -> u32 {
+		if self.hit_count == 0 {
+			return 0;
+		}
+
 		let a = (MAX_SCORE as f32) * self.mod_multiplier * 0.5 / (self.hit_count as f32);
 		let base_score = a * (self.hit_points as f32 / 320.0);
 		let bonus_score = a * (self.bonus_value as f32 * self.bonus.sqrt() / 320.0);
