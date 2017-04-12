@@ -5,6 +5,7 @@ use difficulty::HitAccuracy;
 impl HitAccuracy {
 	fn bonus_value(&self) -> u32 {
 		match *self {
+			HitAccuracy::ThreeHundredMax => 32,
 			HitAccuracy::ThreeHundred => 32,
 			HitAccuracy::TwoHundred => 16,
 			HitAccuracy::OneHundred => 8,
@@ -15,7 +16,7 @@ impl HitAccuracy {
 
 	fn bonus(&self) -> f32 {
 		match *self {
-			// TODO: MAX => 2
+			HitAccuracy::ThreeHundredMax => 2.0,
 			HitAccuracy::ThreeHundred => 1.0,
 			HitAccuracy::TwoHundred => -8.0,
 			HitAccuracy::OneHundred => -24.0,

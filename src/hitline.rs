@@ -42,10 +42,30 @@ impl<'a> HitLine<'a> {
 		}
 	}
 
+	fn press_delay(&self, t: f32, object: &HitObject) -> f32 {
+		let mut dt = self.time - t;
+		if let HitObject::LongNote{..} = *object {
+			dt /= 1.2
+		}
+		dt
+	}
+
+	fn release_delay(&self, t: f32, object: &HitObject) -> f32 {
+		let mut dt = self.time - t;
+		if let HitObject::LongNote{..} = *object {
+			dt /= 2.4
+		}
+		dt
+	}
+
 	pub fn at(&mut self, t: f32) -> Vec<HitAccuracy> {
+		self.time = t;
+
 		let mut missed = Vec::new();
-		for (key, current) in self.current.iter_mut().enumerate() {
-			let object = match *current {
+		for key in 0..self.current.len() {
+			let current = self.current[key];
+
+			let object = match current {
 				Some(object) => object,
 				None => continue,
 			};
@@ -54,7 +74,7 @@ impl<'a> HitLine<'a> {
 				HitObject::LongNote{end_time, ..} => end_time,
 				_ => object.base().time,
 			};
-			let dt = t - (end_time as f32);
+			let dt = self.release_delay(end_time as f32, object);
 			if dt < 0.0 {
 				continue; // Object in the future
 			}
@@ -68,10 +88,8 @@ impl<'a> HitLine<'a> {
 				acc = last_acc.hold_note(acc);
 			}
 			missed.push(acc);
-			*current = self.hit_objects[key].next();
+			self.current[key] = self.hit_objects[key].next();
 		}
-
-		self.time = t;
 
 		missed
 	}
@@ -83,10 +101,10 @@ impl<'a> HitLine<'a> {
 			Some(current) => current,
 		};
 
+		let dt = self.press_delay(current.base().time as f32, current);
+
 		match current {
 			&HitObject::Circle{..} => {
-				let dt = self.time - (current.base().time as f32);
-
 				match self.overall_difficulty.hit_accuracy(dt) {
 					HitAccuracy::Miss => None,
 					acc @ _ => {
@@ -101,7 +119,6 @@ impl<'a> HitLine<'a> {
 					None
 				} else {
 					// Pressed for the first time, maybe on time
-					let dt = self.time - (current.base().time as f32);
 					self.last[key] = Some(self.overall_difficulty.hit_accuracy(dt));
 					None
 				}
@@ -121,7 +138,7 @@ impl<'a> HitLine<'a> {
 			None => return None,
 		};
 
-		let dt = self.time - (end_time as f32);
+		let dt = self.release_delay(end_time as f32, self.current[key].unwrap());
 		match self.overall_difficulty.hit_accuracy(dt) {
 			HitAccuracy::Miss => {
 				// Released too early

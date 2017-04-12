@@ -7,11 +7,13 @@ pub enum HitAccuracy {
 	OneHundred,
 	TwoHundred,
 	ThreeHundred,
+	ThreeHundredMax,
 }
 
 impl HitAccuracy {
 	pub fn score(&self) -> u32 {
 		match *self {
+			HitAccuracy::ThreeHundredMax => 320,
 			HitAccuracy::ThreeHundred => 300,
 			HitAccuracy::TwoHundred => 200,
 			HitAccuracy::OneHundred => 100,
@@ -22,6 +24,7 @@ impl HitAccuracy {
 
 	pub fn prev(&self) -> HitAccuracy {
 		match *self {
+			HitAccuracy::ThreeHundredMax => HitAccuracy::ThreeHundred,
 			HitAccuracy::ThreeHundred => HitAccuracy::TwoHundred,
 			HitAccuracy::TwoHundred => HitAccuracy::OneHundred,
 			HitAccuracy::OneHundred => HitAccuracy::Fifty,
@@ -46,24 +49,33 @@ impl HitAccuracy {
 
 #[derive(Debug)]
 pub struct OverallDifficulty {
+	three_hundred_max: f32,
 	three_hundred: f32,
+	two_hundred: f32,
 	one_hundred: f32,
 	fifty: f32,
 }
 
 impl OverallDifficulty {
 	pub fn new(od: f32) -> OverallDifficulty {
+		// See https://osu.ppy.sh/forum/t/312481
 		OverallDifficulty{
-			three_hundred: 79.5 - od*6.0,
-			one_hundred: 139.5 - od*8.0,
-			fifty: 199.5 - od*10.0,
+			three_hundred_max: 16.0,
+			three_hundred: 64.0 - 3.0*od,
+			two_hundred: 97.0 - 3.0*od,
+			one_hundred: 127.0 - 3.0*od,
+			fifty: 151.0 - 3.0*od,
 		}
 	}
 
 	pub fn hit_accuracy(&self, delay: f32) -> HitAccuracy {
 		let delay = delay.abs();
-		if delay < self.three_hundred {
+		if delay < self.three_hundred_max {
+			HitAccuracy::ThreeHundredMax
+		} else if delay < self.three_hundred {
 			HitAccuracy::ThreeHundred
+		} else if delay < self.two_hundred {
+			HitAccuracy::TwoHundred
 		} else if delay < self.one_hundred {
 			HitAccuracy::OneHundred
 		} else if delay < self.fifty {
